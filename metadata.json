@@ -1,0 +1,8 @@
+{
+  "name": "Remix 2ND",
+  "description": "Geo-located sound sharing and virtual AR graffiti app.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

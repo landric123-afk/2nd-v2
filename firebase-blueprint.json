@@ -1,0 +1,172 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile registered via Google Sign-In",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID matching the document ID" },
+        "displayName": { "type": "string", "description": "User's display name" },
+        "handle": { "type": "string", "description": "Guerrilla operator handle / callsign" },
+        "email": { "type": "string", "description": "Google account email address (owner-only PII)" },
+        "bio": { "type": "string", "description": "Short profile bio or manifesto" },
+        "photoUrl": { "type": "string", "description": "Optional Google profile photo URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp written via FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp written via FieldValue.serverTimestamp()" }
+      },
+      "required": ["userId", "displayName", "handle", "email", "bio", "createdAt", "updatedAt"]
+    },
+    "CloudSoundDrop": {
+      "title": "CloudSoundDrop",
+      "description": "Geo-located sound drop authored by the user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "title": { "type": "string", "description": "Sound drop beacon title" },
+        "description": { "type": "string", "description": "Broadcast transcript or note" },
+        "latitude": { "type": "number", "description": "Latitude coordinate (-90 to 90)" },
+        "longitude": { "type": "number", "description": "Longitude coordinate (-180 to 180)" },
+        "radiusInMeters": { "type": "number", "description": "Circular geofence listening radius in meters (50 to 1000)" },
+        "geohash": { "type": "string", "description": "9-char precision Base32 geohash" },
+        "geohashTile": { "type": "string", "description": "5-char geohash tile prefix for spatial partitioning" },
+        "anonymous": { "type": "boolean", "description": "Whether the broadcast hides the operator handle" },
+        "audioDurationSeconds": { "type": "integer", "description": "Audio clip duration in seconds" },
+        "creatorName": { "type": "string", "description": "Displayed handle or Anonymous" },
+        "dspPreset": { "type": "string", "description": "Voice modulation / Lo-Fi DSP filter preset ID (RAW, DEEP_ANON, TAPE_HISS, RADIO_BANDPASS)" },
+        "audioUrl": { "type": "string", "description": "Optional Firebase Storage download URL for cross-user audio streaming" },
+        "audioStoragePath": { "type": "string", "description": "Optional Firebase Storage object path for the audio clip" },
+        "localAudioPath": { "type": "string", "description": "Optional device-local audio file path" },
+        "clientTimestampMs": { "type": "integer", "description": "Client epoch milliseconds for timeline filtering" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp written via FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp written via FieldValue.serverTimestamp()" }
+      },
+      "required": [
+        "userId", "title", "description", "latitude", "longitude",
+        "radiusInMeters", "anonymous", "audioDurationSeconds",
+        "creatorName", "clientTimestampMs", "createdAt", "updatedAt"
+      ]
+    },
+    "CloudVirtualGraffiti": {
+      "title": "CloudVirtualGraffiti",
+      "description": "Geo-located AR virtual graffiti stencil authored by the user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "contentText": { "type": "string", "description": "Stencil manifesto text" },
+        "author": { "type": "string", "description": "Creator signature tag" },
+        "latitude": { "type": "number", "description": "Latitude coordinate (-90 to 90)" },
+        "longitude": { "type": "number", "description": "Longitude coordinate (-180 to 180)" },
+        "altitudeMeters": { "type": "number", "description": "WGS84 or terrain/rooftop altitude offset in meters" },
+        "geohash": { "type": "string", "description": "9-char precision Base32 geohash" },
+        "geohashTile": { "type": "string", "description": "5-char geohash tile prefix" },
+        "anchorType": { "type": "string", "description": "VPS_TERRAIN, VPS_ROOFTOP, VPS_WGS84, or COMPASS_FALLBACK" },
+        "anchorAzimuth": { "type": "number", "description": "Compass heading azimuth in degrees (0 to 360)" },
+        "anchorPitch": { "type": "number", "description": "Vertical tilt pitch in degrees (-90 to 90)" },
+        "vpsHeadingDeg": { "type": "number", "description": "ARCore Geospatial EUS heading in degrees" },
+        "horizontalAccuracyM": { "type": "number", "description": "ARCore VPS horizontal position accuracy in meters" },
+        "verticalAccuracyM": { "type": "number", "description": "ARCore VPS vertical altitude accuracy in meters" },
+        "colorHex": { "type": "string", "description": "Neon dye hex color" },
+        "sizeScale": { "type": "number", "description": "Render scale multiplier (0.3 to 3.0)" },
+        "mediaType": { "type": "string", "description": "TEXT, IMAGE, or PDF" },
+        "mediaUrl": { "type": "string", "description": "Optional Firebase Storage download URL for stencil image or PDF" },
+        "mediaStoragePath": { "type": "string", "description": "Optional Firebase Storage object path for the graffiti media" },
+        "clientTimestampMs": { "type": "integer", "description": "Client epoch milliseconds for timeline filtering" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp written via FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp written via FieldValue.serverTimestamp()" }
+      },
+      "required": [
+        "userId", "contentText", "author", "latitude", "longitude",
+        "anchorAzimuth", "anchorPitch", "colorHex", "sizeScale",
+        "clientTimestampMs", "createdAt", "updatedAt"
+      ]
+    },
+    "PublicSoundDrop": {
+      "title": "PublicSoundDrop",
+      "description": "Shared cross-user spatial index entry for a public Sound-Drop partitioned by 5-char Geohash tile (zero PII)",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Author Firebase Auth UID" },
+        "title": { "type": "string", "description": "Sound drop title" },
+        "description": { "type": "string", "description": "Broadcast description" },
+        "latitude": { "type": "number", "description": "Latitude coordinate" },
+        "longitude": { "type": "number", "description": "Longitude coordinate" },
+        "radiusInMeters": { "type": "number", "description": "Circular geofence listening radius (50 to 1000)" },
+        "geohash": { "type": "string", "description": "9-char Base32 geohash" },
+        "geohashTile": { "type": "string", "description": "5-char Geohash tile key for spatial whereIn queries" },
+        "anonymous": { "type": "boolean", "description": "Whether the creator is anonymous" },
+        "audioDurationSeconds": { "type": "integer", "description": "Audio duration in seconds" },
+        "creatorName": { "type": "string", "description": "Displayed handle or Anonymous" },
+        "dspPreset": { "type": "string", "description": "DSP voice filter preset applied to recording" },
+        "audioUrl": { "type": "string", "description": "Optional Firebase Storage HTTPS stream URL" },
+        "audioStoragePath": { "type": "string", "description": "Optional Firebase Storage object path" },
+        "clientTimestampMs": { "type": "integer", "description": "Client epoch ms timestamp" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": [
+        "userId", "title", "description", "latitude", "longitude",
+        "radiusInMeters", "geohash", "geohashTile", "anonymous",
+        "audioDurationSeconds", "creatorName", "dspPreset",
+        "clientTimestampMs", "createdAt", "updatedAt"
+      ]
+    },
+    "PublicVirtualGraffiti": {
+      "title": "PublicVirtualGraffiti",
+      "description": "Shared cross-user spatial index entry for AR Virtual Graffiti partitioned by 5-char Geohash tile (zero PII)",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Author Firebase Auth UID" },
+        "contentText": { "type": "string", "description": "Stencil text / label" },
+        "author": { "type": "string", "description": "Displayed signature tag" },
+        "latitude": { "type": "number", "description": "Latitude coordinate" },
+        "longitude": { "type": "number", "description": "Longitude coordinate" },
+        "altitudeMeters": { "type": "number", "description": "VPS terrain/rooftop/WGS84 altitude meters" },
+        "geohash": { "type": "string", "description": "9-char Base32 geohash" },
+        "geohashTile": { "type": "string", "description": "5-char Geohash tile key" },
+        "anchorType": { "type": "string", "description": "VPS_TERRAIN, VPS_ROOFTOP, VPS_WGS84, or COMPASS_FALLBACK" },
+        "anchorAzimuth": { "type": "number", "description": "Bearing azimuth degrees" },
+        "anchorPitch": { "type": "number", "description": "Pitch degrees" },
+        "vpsHeadingDeg": { "type": "number", "description": "VPS heading degrees" },
+        "horizontalAccuracyM": { "type": "number", "description": "VPS horizontal accuracy in meters" },
+        "verticalAccuracyM": { "type": "number", "description": "VPS vertical accuracy in meters" },
+        "colorHex": { "type": "string", "description": "Hex color" },
+        "sizeScale": { "type": "number", "description": "Scale factor" },
+        "mediaType": { "type": "string", "description": "TEXT, IMAGE, or PDF" },
+        "mediaUrl": { "type": "string", "description": "Optional Firebase Storage HTTPS download URL for image or PDF" },
+        "mediaStoragePath": { "type": "string", "description": "Optional Firebase Storage path" },
+        "clientTimestampMs": { "type": "integer", "description": "Client epoch ms timestamp" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": [
+        "userId", "contentText", "author", "latitude", "longitude",
+        "altitudeMeters", "geohash", "geohashTile", "anchorType",
+        "anchorAzimuth", "anchorPitch", "vpsHeadingDeg",
+        "horizontalAccuracyM", "verticalAccuracyM", "colorHex", "sizeScale",
+        "mediaType", "clientTimestampMs", "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile document strictly isolated to its authenticated owner"
+    },
+    "/users/{userId}/sound_drops/{dropId}": {
+      "schema": { "$ref": "#/entities/CloudSoundDrop" },
+      "description": "User-authored geo-located sound drops"
+    },
+    "/users/{userId}/virtual_graffiti/{graffitiId}": {
+      "schema": { "$ref": "#/entities/CloudVirtualGraffiti" },
+      "description": "User-authored AR virtual graffiti anchors"
+    },
+    "/public_drops/{dropId}": {
+      "schema": { "$ref": "#/entities/PublicSoundDrop" },
+      "description": "Shared cross-user spatial Sound-Drop index partitioned by 5-char Geohash tiles"
+    },
+    "/public_graffiti/{graffitiId}": {
+      "schema": { "$ref": "#/entities/PublicVirtualGraffiti" },
+      "description": "Shared cross-user spatial AR Virtual Graffiti index partitioned by 5-char Geohash tiles"
+    }
+  }
+}

@@ -1,0 +1,286 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidGeohash(hash) {
+      return hash is string && hash.size() >= 5 && hash.size() <= 12 && hash.matches('^[0-9b-hjkmnp-z]+$');
+    }
+
+    function isValidGeohashTile(tile) {
+      return tile is string && tile.size() == 5 && tile.matches('^[0-9b-hjkmnp-z]{5}$');
+    }
+
+    function isValidMediaType(mt) {
+      return mt in ['TEXT', 'IMAGE', 'PDF'];
+    }
+
+    function isValidAnchorType(at) {
+      return at in ['VPS_TERRAIN', 'VPS_ROOFTOP', 'VPS_WGS84', 'COMPASS_FALLBACK'];
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 50 &&
+             data.handle is string && data.handle.size() >= 2 && data.handle.size() <= 30 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.bio is string && data.bio.size() <= 200 &&
+             (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500));
+    }
+
+    function isValidSoundDrop(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
+             data.description is string && data.description.size() <= 300 &&
+             data.latitude is number && data.latitude >= -90 && data.latitude <= 90 &&
+             data.longitude is number && data.longitude >= -180 && data.longitude <= 180 &&
+             data.radiusInMeters is number && data.radiusInMeters >= 50 && data.radiusInMeters <= 1000 &&
+             data.anonymous is bool &&
+             data.audioDurationSeconds is int && data.audioDurationSeconds >= 0 && data.audioDurationSeconds <= 3600 &&
+             data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 50 &&
+             data.clientTimestampMs is int && data.clientTimestampMs >= 0 &&
+             (!('geohash' in data) || isValidGeohash(data.geohash)) &&
+             (!('geohashTile' in data) || isValidGeohashTile(data.geohashTile)) &&
+             (!('dspPreset' in data) || (data.dspPreset is string && data.dspPreset.size() <= 32)) &&
+             (!('audioUrl' in data) || (data.audioUrl is string && data.audioUrl.size() <= 1024)) &&
+             (!('audioStoragePath' in data) || (data.audioStoragePath is string && data.audioStoragePath.size() <= 500)) &&
+             (!('localAudioPath' in data) || (data.localAudioPath is string && data.localAudioPath.size() <= 500));
+    }
+
+    function isValidPublicSoundDrop(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
+             data.description is string && data.description.size() <= 300 &&
+             data.latitude is number && data.latitude >= -90 && data.latitude <= 90 &&
+             data.longitude is number && data.longitude >= -180 && data.longitude <= 180 &&
+             data.radiusInMeters is number && data.radiusInMeters >= 50 && data.radiusInMeters <= 1000 &&
+             isValidGeohash(data.geohash) &&
+             isValidGeohashTile(data.geohashTile) &&
+             data.anonymous is bool &&
+             data.audioDurationSeconds is int && data.audioDurationSeconds >= 0 && data.audioDurationSeconds <= 3600 &&
+             data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 50 &&
+             data.dspPreset is string && data.dspPreset.size() >= 1 && data.dspPreset.size() <= 32 &&
+             data.clientTimestampMs is int && data.clientTimestampMs >= 0 &&
+             (!('audioUrl' in data) || (data.audioUrl is string && data.audioUrl.size() <= 1024)) &&
+             (!('audioStoragePath' in data) || (data.audioStoragePath is string && data.audioStoragePath.size() <= 500));
+    }
+
+    function isValidVirtualGraffiti(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.contentText is string && data.contentText.size() >= 1 && data.contentText.size() <= 140 &&
+             data.author is string && data.author.size() >= 1 && data.author.size() <= 40 &&
+             data.latitude is number && data.latitude >= -90 && data.latitude <= 90 &&
+             data.longitude is number && data.longitude >= -180 && data.longitude <= 180 &&
+             data.anchorAzimuth is number && data.anchorAzimuth >= 0 && data.anchorAzimuth <= 360 &&
+             data.anchorPitch is number && data.anchorPitch >= -90 && data.anchorPitch <= 90 &&
+             data.colorHex is string && data.colorHex.size() >= 4 && data.colorHex.size() <= 9 &&
+             data.sizeScale is number && data.sizeScale >= 0.3 && data.sizeScale <= 3.0 &&
+             data.clientTimestampMs is int && data.clientTimestampMs >= 0 &&
+             (!('altitudeMeters' in data) || (data.altitudeMeters is number && data.altitudeMeters >= -500 && data.altitudeMeters <= 10000)) &&
+             (!('geohash' in data) || isValidGeohash(data.geohash)) &&
+             (!('geohashTile' in data) || isValidGeohashTile(data.geohashTile)) &&
+             (!('anchorType' in data) || isValidAnchorType(data.anchorType)) &&
+             (!('vpsHeadingDeg' in data) || (data.vpsHeadingDeg is number && data.vpsHeadingDeg >= 0 && data.vpsHeadingDeg <= 360)) &&
+             (!('horizontalAccuracyM' in data) || (data.horizontalAccuracyM is number && data.horizontalAccuracyM >= 0 && data.horizontalAccuracyM <= 5000)) &&
+             (!('verticalAccuracyM' in data) || (data.verticalAccuracyM is number && data.verticalAccuracyM >= 0 && data.verticalAccuracyM <= 5000)) &&
+             (!('mediaType' in data) || isValidMediaType(data.mediaType)) &&
+             (!('mediaUrl' in data) || (data.mediaUrl is string && data.mediaUrl.size() <= 1024)) &&
+             (!('mediaStoragePath' in data) || (data.mediaStoragePath is string && data.mediaStoragePath.size() <= 500));
+    }
+
+    function isValidPublicVirtualGraffiti(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.contentText is string && data.contentText.size() >= 1 && data.contentText.size() <= 140 &&
+             data.author is string && data.author.size() >= 1 && data.author.size() <= 40 &&
+             data.latitude is number && data.latitude >= -90 && data.latitude <= 90 &&
+             data.longitude is number && data.longitude >= -180 && data.longitude <= 180 &&
+             data.altitudeMeters is number && data.altitudeMeters >= -500 && data.altitudeMeters <= 10000 &&
+             isValidGeohash(data.geohash) &&
+             isValidGeohashTile(data.geohashTile) &&
+             isValidAnchorType(data.anchorType) &&
+             data.anchorAzimuth is number && data.anchorAzimuth >= 0 && data.anchorAzimuth <= 360 &&
+             data.anchorPitch is number && data.anchorPitch >= -90 && data.anchorPitch <= 90 &&
+             data.vpsHeadingDeg is number && data.vpsHeadingDeg >= 0 && data.vpsHeadingDeg <= 360 &&
+             data.horizontalAccuracyM is number && data.horizontalAccuracyM >= 0 && data.horizontalAccuracyM <= 5000 &&
+             data.verticalAccuracyM is number && data.verticalAccuracyM >= 0 && data.verticalAccuracyM <= 5000 &&
+             data.colorHex is string && data.colorHex.size() >= 4 && data.colorHex.size() <= 9 &&
+             data.sizeScale is number && data.sizeScale >= 0.3 && data.sizeScale <= 3.0 &&
+             isValidMediaType(data.mediaType) &&
+             data.clientTimestampMs is int && data.clientTimestampMs >= 0 &&
+             (!('mediaUrl' in data) || (data.mediaUrl is string && data.mediaUrl.size() <= 1024)) &&
+             (!('mediaStoragePath' in data) || (data.mediaStoragePath is string && data.mediaStoragePath.size() <= 500));
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'handle', 'email', 'bio', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'handle', 'email', 'bio', 'photoUrl', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().email == existing().email &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'handle', 'bio', 'photoUrl', 'updatedAt']);
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      match /sound_drops/{dropId} {
+        allow get: if isValidId(userId) && isValidId(dropId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) &&
+                         isValidId(dropId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'description', 'latitude', 'longitude', 'radiusInMeters', 'anonymous', 'audioDurationSeconds', 'creatorName', 'clientTimestampMs', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'description', 'latitude', 'longitude', 'radiusInMeters', 'geohash', 'geohashTile', 'anonymous', 'audioDurationSeconds', 'creatorName', 'dspPreset', 'audioUrl', 'audioStoragePath', 'localAudioPath', 'clientTimestampMs', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         isValidSoundDrop(incoming(), userId);
+
+        allow update: if isValidId(userId) &&
+                         isValidId(dropId) &&
+                         isOwner(userId) &&
+                         isValidSoundDrop(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'radiusInMeters', 'audioUrl', 'audioStoragePath', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(dropId) && isOwner(userId);
+      }
+
+      match /virtual_graffiti/{graffitiId} {
+        allow get: if isValidId(userId) && isValidId(graffitiId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+
+        allow create: if isValidId(userId) &&
+                         isValidId(graffitiId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll(['userId', 'contentText', 'author', 'latitude', 'longitude', 'anchorAzimuth', 'anchorPitch', 'colorHex', 'sizeScale', 'clientTimestampMs', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'contentText', 'author', 'latitude', 'longitude', 'altitudeMeters', 'geohash', 'geohashTile', 'anchorType', 'anchorAzimuth', 'anchorPitch', 'vpsHeadingDeg', 'horizontalAccuracyM', 'verticalAccuracyM', 'colorHex', 'sizeScale', 'mediaType', 'mediaUrl', 'mediaStoragePath', 'clientTimestampMs', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         isValidVirtualGraffiti(incoming(), userId);
+
+        allow update: if isValidId(userId) &&
+                         isValidId(graffitiId) &&
+                         isOwner(userId) &&
+                         isValidVirtualGraffiti(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['contentText', 'colorHex', 'sizeScale', 'mediaUrl', 'mediaStoragePath', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(graffitiId) && isOwner(userId);
+      }
+    }
+
+    // Shared cross-user spatial discovery index partitioned by 5-char Geohash tiles (zero PII)
+    match /public_drops/{dropId} {
+      allow get: if isValidId(dropId) && isSignedIn();
+      allow list: if isSignedIn() &&
+                     request.query.limit != null &&
+                     request.query.limit <= 100 &&
+                     existing().geohashTile is string &&
+                     existing().geohashTile.size() == 5;
+
+      allow create: if isValidId(dropId) &&
+                       isSignedIn() &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'title', 'description', 'latitude', 'longitude', 'radiusInMeters', 'geohash', 'geohashTile', 'anonymous', 'audioDurationSeconds', 'creatorName', 'dspPreset', 'clientTimestampMs', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'title', 'description', 'latitude', 'longitude', 'radiusInMeters', 'geohash', 'geohashTile', 'anonymous', 'audioDurationSeconds', 'creatorName', 'dspPreset', 'audioUrl', 'audioStoragePath', 'clientTimestampMs', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidPublicSoundDrop(incoming(), request.auth.uid);
+
+      allow update: if isValidId(dropId) &&
+                       isSignedIn() &&
+                       existing().userId == request.auth.uid &&
+                       isValidPublicSoundDrop(incoming(), request.auth.uid) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'radiusInMeters', 'audioUrl', 'audioStoragePath', 'updatedAt']);
+
+      allow delete: if isValidId(dropId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /public_graffiti/{graffitiId} {
+      allow get: if isValidId(graffitiId) && isSignedIn();
+      allow list: if isSignedIn() &&
+                     request.query.limit != null &&
+                     request.query.limit <= 100 &&
+                     existing().geohashTile is string &&
+                     existing().geohashTile.size() == 5;
+
+      allow create: if isValidId(graffitiId) &&
+                       isSignedIn() &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'contentText', 'author', 'latitude', 'longitude', 'altitudeMeters', 'geohash', 'geohashTile', 'anchorType', 'anchorAzimuth', 'anchorPitch', 'vpsHeadingDeg', 'horizontalAccuracyM', 'verticalAccuracyM', 'colorHex', 'sizeScale', 'mediaType', 'clientTimestampMs', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'contentText', 'author', 'latitude', 'longitude', 'altitudeMeters', 'geohash', 'geohashTile', 'anchorType', 'anchorAzimuth', 'anchorPitch', 'vpsHeadingDeg', 'horizontalAccuracyM', 'verticalAccuracyM', 'colorHex', 'sizeScale', 'mediaType', 'mediaUrl', 'mediaStoragePath', 'clientTimestampMs', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidPublicVirtualGraffiti(incoming(), request.auth.uid);
+
+      allow update: if isValidId(graffitiId) &&
+                       isSignedIn() &&
+                       existing().userId == request.auth.uid &&
+                       isValidPublicVirtualGraffiti(incoming(), request.auth.uid) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['contentText', 'colorHex', 'sizeScale', 'mediaUrl', 'mediaStoragePath', 'updatedAt']);
+
+      allow delete: if isValidId(graffitiId) && isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}
